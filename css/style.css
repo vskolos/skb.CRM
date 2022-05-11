@@ -109,7 +109,7 @@ body {
 .table__header {
   padding: 8px 20px;
   display: grid;
-  grid-template-columns: 70px 210px 90px 90px 121px 85px;
+  grid-template-columns: 90px 210px 90px 90px 121px 85px;
   align-items: end;
   gap: 8px;
 }
@@ -191,9 +191,9 @@ body {
 .client {
   padding-inline: 20px;
   display: grid;
-  grid-template-columns: 70px 210px 90px 90px 121px 85px;
+  grid-template-columns: 90px 210px 90px 90px 121px 85px;
   grid-template-rows: 60px;
-  width: calc(40px + 40px + 70px + 210px + 90px + 90px + 121px + 85px);
+  width: calc(40px + 40px + 90px + 210px + 90px + 90px + 121px + 85px);
   align-items: center;
   gap: 8px;
   background-color: var(--clr-white);
@@ -373,21 +373,23 @@ body {
 /* Edit Client Pop-Up */
 
 .edit-form__wrapper {
-  padding-inline: 10px;
-  position: absolute;
+  padding: 20px 10px;
+  position: fixed;
   inset: 0;
   display: flex;
-  display: none;
-  align-items: center;
+  min-width: 320px;
+  align-items: flex-start;
   justify-content: center;
   background-color: #0007;
   z-index: 10;
+  overflow-y: scroll;
 }
 
 .edit-form {
+  position: relative;
+  padding: 24px 15px 29px;
   width: 100%;
   max-width: 450px;
-  padding: 24px 15px 29px;
   background-color: var(--clr-white);
 }
 
@@ -511,7 +513,6 @@ body {
 }
 
 .new-contact {
-  position: relative;
   display: flex;
   width: 100%;
   overflow: hidden;
@@ -571,23 +572,15 @@ body {
   z-index: 1;
 }
 
-.new-contact__data--empty {
-  width: 59.26%;
-}
-
-.new-contact__data--empty + .new-contact__clear-btn {
-  right: -28px;
-}
-
 .new-contact__data::placeholder {
   color: var(--clr-text-gray);
 }
 
-.new-contact__clear-btn {
+.new-contact__remove-btn {
+  position: relative;
+  margin-left: -1px;
   padding: 10px 5px;
-  position: absolute;
-  right: 0;
-  height: 100%;
+  line-height: 0;
   background-color: var(--clr-gray-light);
   border: 1px solid var(--clr-gray);
   z-index: auto;
@@ -595,26 +588,26 @@ body {
     border-color .1s ease-in-out;
 }
 
-.new-contact__clear-btn > svg {
+.new-contact__remove-btn > svg {
   transition: fill .1s ease-in-out;
 }
 
-.new-contact__clear-btn:hover {
+.new-contact__remove-btn:hover {
   border-color: var(--clr-red);
   z-index: 1;
 }
 
-.new-contact__clear-btn:hover > svg > path {
+.new-contact__remove-btn:hover > svg > path {
   fill: var(--clr-red);
 }
 
-.new-contact__clear-btn:focus-visible {
+.new-contact__remove-btn:focus-visible {
   border-color: var(--clr-red);
   outline: none;
   z-index: 1;
 }
 
-.new-contact__clear-btn:focus-visible > svg > path {
+.new-contact__remove-btn:focus-visible > svg > path {
   fill: var(--clr-red);
 }
 
@@ -674,6 +667,12 @@ body {
   color: var(--clr-red);
 }
 
+.edit-form__close-btn {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+}
+
 @media (min-width: 768px) {
 
   :root {
@@ -723,8 +722,7 @@ body {
   }
 
   .table__header {
-    /* grid-template-columns: 7.56% 30.52% 13.08% 13.08% 17.59% 12.35%; */
-    grid-template-columns: 10.17% 27.91% 13.08% 13.08% 17.59% 12.35%;
+    grid-template-columns: 12.67% 27.91% 13.08% 13.08% 15.09% 12.35%;
   }
 
   .table__row {
@@ -732,7 +730,7 @@ body {
   }
 
   .client {
-    grid-template-columns: 10.17% 27.91% 13.08% 13.08% 17.59% 12.35%;
+    grid-template-columns: 12.67% 27.91% 13.08% 13.08% 15.09% 12.35%;
     width: auto;
   }
 
@@ -758,8 +756,9 @@ body {
     width: calc(68.46% - 26px);
   }
 
-  .new-contact__data--empty {
-    width: 68.46%;
+  .edit-form__close-btn {
+    top: 15px;
+    right: 15px;
   }
 
 }
@@ -767,11 +766,11 @@ body {
 @media (min-width: 1024px) {
 
   .table__header {
-    grid-template-columns: 6.57% 23.83% 15.89% 14.62% 15.04% 19.81%;
+    grid-template-columns: 9.57% 23.83% 15.89% 14.62% 12.04% 19.81%;
   }
 
   .client {
-    grid-template-columns: 6.57% 23.83% 15.89% 14.62% 15.04% 19.81%;
+    grid-template-columns: 9.57% 23.83% 15.89% 14.62% 12.04% 19.81%;
     width: auto;
   }
 
@@ -801,11 +800,11 @@ body {
   }
 
   .table__header {
-    grid-template-columns: 6.46% 31.5% 14.57% 14.4% 13.26% 16.23%;
+    grid-template-columns: 9.46% 31.5% 14.57% 14.4% 10.26% 16.23%;
   }
 
   .client {
-    grid-template-columns: 6.46% 31.5% 14.57% 14.4% 13.26% 16.23%;
+    grid-template-columns: 9.46% 31.5% 14.57% 14.4% 10.26% 16.23%;
     width: auto;
   }
 
