@@ -220,6 +220,7 @@ body {
 
 .client__contacts {
   display: flex;
+  flex-wrap: wrap;
   gap: 7px;
 }
 
@@ -254,7 +255,7 @@ body {
   display: flex;
   gap: 5px;
   position: absolute;
-  top: -40px;
+  bottom: 24px;
   left: 0;
   background-color: var(--clr-black);
   z-index: 1;
@@ -276,6 +277,7 @@ body {
 
 .contact__tooltip-text {
   display: inline-block;
+  flex-shrink: 0;
   font-size: var(--fs-300);
   line-height: var(--lh-300);
   color: var(--clr-white);
@@ -372,8 +374,8 @@ body {
 
 /* Edit Client Pop-Up */
 
-.edit-form__wrapper {
-  padding: 20px 10px;
+.form-wrapper {
+  padding: 30px 10px;
   position: fixed;
   inset: 0;
   display: flex;
@@ -385,7 +387,7 @@ body {
   overflow-y: scroll;
 }
 
-.edit-form {
+.form {
   position: relative;
   padding: 24px 15px 29px;
   width: 100%;
@@ -393,11 +395,19 @@ body {
   background-color: var(--clr-white);
 }
 
-.edit-form__text {
+.form__text {
   margin-bottom: 16px;
 }
 
-.edit-form__title {
+.form__text.centered {
+  margin-bottom: 25px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 11px;
+}
+
+.form__title {
   display: inline-block;
   margin-block: 0;
   margin-right: 4px;
@@ -407,27 +417,34 @@ body {
   color: var(--clr-black);
 }
 
-.edit-form__id {
+.form__secondary-text {
+  max-width: 275px;
+  text-align: center;
+  font-size: var(--fs-400);
+  line-height: var(--lh-400);
+}
+
+.form__id {
   display: inline-block;
   font-size: var(--fs-300);
   line-height: var(--lh-300);
   color: var(--clr-text-gray);
 }
 
-.edit-form__fields {
+.form__fields {
   margin-bottom: 26px;
   display: flex;
   flex-direction: column;
   gap: 15px;
 }
 
-.edit-form__label {
+.form__label {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
-.edit-form__label-text {
+.form__label-text {
   position: relative;
   top: 0;
   font-size: var(--fs-200);
@@ -438,7 +455,7 @@ body {
   pointer-events: initial;
 }
 
-.edit-form__label-text--empty {
+.form__label-text--empty {
   top: 19px;
   font-size: var(--fs-400);
   pointer-events: none;
@@ -448,7 +465,7 @@ body {
   color: var(--clr-accent);
 }
 
-.edit-form__input {
+.form__input {
   padding: 1px 0 4px;
   font-weight: 600;
   font-size: var(--fs-400);
@@ -459,16 +476,16 @@ body {
   transition: border-color .1s ease-in-out;
 }
 
-.edit-form__input:hover {
+.form__input:hover {
   border-color: var(--clr-accent-light);
 }
 
-.edit-form__input:focus-visible {
+.form__input:focus-visible {
   border-color: var(--clr-accent);
   outline: none;
 }
 
-.edit-form__add-contacts {
+.form__add-contacts {
   margin-inline: -15px;
   margin-bottom: 25px;
 }
@@ -611,14 +628,14 @@ body {
   fill: var(--clr-red);
 }
 
-.edit-form__btns {
+.form__btns {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 5px;
 }
 
-.edit-form__save-btn {
+.form__primary-btn {
   padding: 12.5px 35px;
   font-weight: 600;
   font-size: var(--fs-400);
@@ -629,20 +646,20 @@ body {
   cursor: pointer;
 }
 
-.edit-form__save-btn:hover {
+.form__primary-btn:hover {
   background-color: var(--clr-accent-light);
 }
 
-.edit-form__save-btn:focus-visible {
+.form__primary-btn:focus-visible {
   background-color: var(--clr-accent-light);
   outline: none;
 }
 
-.edit-form__save-btn:active {
+.form__primary-btn:active {
   background-color: var(--clr-accent-vivid);
 }
 
-.edit-form__remove-btn {
+.form__secondary-btn {
   font-size: var(--fs-300);
   line-height: var(--lh-300);
   color: var(--clr-black);
@@ -651,23 +668,23 @@ body {
     border-color .1s ease-in-out;
 }
 
-.edit-form__remove-btn:hover {
+.form__secondary-btn:hover {
   color: var(--clr-red);
   border-color: var(--clr-red);
 }
 
-.edit-form__remove-btn:focus-visible {
+.form__secondary-btn:focus-visible {
   color: var(--clr-red);
   border-color: transparent;
   outline: 2px solid var(--clr-red);
 }
 
-.edit-form__remove-btn:active {
+.form__secondary-btn:active {
   border-color: var(--clr-red);
   color: var(--clr-red);
 }
 
-.edit-form__close-btn {
+.form__close-btn {
   position: absolute;
   top: 3px;
   right: 3px;
@@ -736,11 +753,11 @@ body {
 
   /* Edit Client Pop-Up */
 
-  .edit-form {
+  .form {
     padding-inline: 30px;
   }
 
-  .edit-form__add-contacts {
+  .form__add-contacts {
     margin-inline: -30px;
   }
 
@@ -756,7 +773,7 @@ body {
     width: calc(68.46% - 26px);
   }
 
-  .edit-form__close-btn {
+  .form__close-btn {
     top: 15px;
     right: 15px;
   }

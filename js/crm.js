@@ -1,5 +1,10 @@
 (() => {
 
+  let clients = null;
+  let sortBy = 'id';
+  let sortAsc = true;
+  let searchQuery = '';
+
   // API
 
   // Get clients from server
@@ -8,10 +13,20 @@
 
   async function getClients() {
 
-    const clients = fetch(`${URL}/api/clients`)
-      .then(response => response.json());
+    const response = await fetch(`${URL}/api/clients?search=${searchQuery}`);
+    clients = await response.json();
 
-    return clients;
+    return clients.sort((a, b) => {
+
+      if (sortBy === 'id') {
+        return sortAsc ? a[sortBy] - b[sortBy] : b[sortBy] - a[sortBy];
+      } else if (sortBy === 'surname') {
+        return sortAsc ? a[sortBy].localeCompare(b[sortBy]) : b[sortBy].localeCompare(a[sortBy]);
+      } else {
+        return sortAsc ? new Date(a[sortBy]).getTime() - new Date(b[sortBy]).getTime() : new Date(b[sortBy]).getTime() - new Date(a[sortBy]).getTime();
+      }
+
+    });
 
   }
 
@@ -19,8 +34,8 @@
 
   async function getClient(id) {
 
-    const client = fetch(`${URL}/api/clients/${id}`)
-    .then(response => response.json());
+    const response = await fetch(`${URL}/api/clients/${id}`);
+    const client = await response.json();
 
     return client;
 
@@ -30,10 +45,11 @@
 
   async function addClient(client) {
 
-    const response = fetch(`${URL}/api/clients`, {
+    await fetch(`${URL}/api/clients`, {
       method: 'POST',
       body: JSON.stringify(client),
     });
+    renderClients();
 
   }
 
@@ -41,10 +57,11 @@
 
   async function editClient(client) {
 
-    const response = fetch(`${URL}/api/clients/${client.id}`, {
+    await fetch(`${URL}/api/clients/${client.id}`, {
       method: 'PATCH',
       body: JSON.stringify(client),
     });
+    renderClients();
 
   }
 
@@ -52,9 +69,10 @@
 
   async function deleteClient(id) {
 
-    const response = fetch(`${URL}/api/clients/${id}`, {
+    const response = await fetch(`${URL}/api/clients/${id}`, {
       method: 'DELETE',
     });
+    renderClients();
 
   }
 
@@ -76,9 +94,19 @@
     'Другое': 'other',
   };
 
+  // Disable/Enable page scroll
+
+  function enablePageScroll() {
+    document.body.style.removeProperty('overflow');
+  }
+
+  function disablePageScroll() {
+    document.body.style.overflow = 'hidden';
+  }
+
   // Create Header
 
-  function createHeader() {
+  function renderHeader() {
 
     const header = document.createElement('header');
     header.className = 'header';
@@ -121,18 +149,27 @@
     search.setAttribute('type', 'text');
     search.setAttribute('placeholder', 'Введите запрос');
 
+    let inputTimeoutID = 0;
+    search.addEventListener('input', () => {
+      clearTimeout(inputTimeoutID);
+      inputTimeoutID = setTimeout(() => {
+        searchQuery = search.value;
+        renderClients();
+      }, 300);
+    });
+
     // Add everything to Header
 
     wrapper.append(logo, search);
     container.append(wrapper);
     header.append(container);
 
-    return header;
+    document.body.append(header);
   }
 
   // Create Main
 
-  function createCRM(clients) {
+  function renderMain() {
 
     const main = document.createElement('main');
     main.className = 'main';
@@ -155,7 +192,7 @@
     const tableHeader = document.createElement('div');
     tableHeader.className = 'table__header';
 
-    function createTableColHeader(className, text, sortable = true) {
+    function createTableColHeader(className, text, sortable = false, sortId = null) {
 
       const colHeader = document.createElement('div');
       colHeader.className = 'table__col-header';
@@ -164,6 +201,42 @@
         const button = document.createElement('button');
         button.className = `btn table__col-sort-btn ${className}`;
         button.textContent = text;
+
+        button.addEventListener('click', async () => {
+
+          if (button.classList.contains('table__col-header--sorted-asc')) {
+
+            button.classList.add('table__col-header--sorted-desc');
+            button.classList.remove('table__col-header--sorted-asc');
+
+            sortAsc = false;
+
+            await renderClients();
+
+          } else if (button.classList.contains('table__col-header--sorted-desc')) {
+
+            button.classList.add('table__col-header--sorted-asc');
+            button.classList.remove('table__col-header--sorted-desc');
+
+            sortAsc = true;
+
+            await renderClients();
+
+          } else {
+
+            const sortButtons = document.querySelectorAll('.table__col-sort-btn');
+            sortButtons.forEach(button => button.classList.remove('table__col-header--sorted-asc', 'table__col-header--sorted-desc'));
+
+            button.classList.add('table__col-header--sorted-asc');
+
+            sortBy = sortId;
+            sortAsc = true;
+
+            await renderClients();
+
+          }
+
+        });
 
         colHeader.append(button);
       } else {
@@ -175,271 +248,14 @@
 
     };
 
-    tableHeader.append(createTableColHeader('table__col-id', 'ID'));
-    tableHeader.append(createTableColHeader('table__col-name', 'Фамилия Имя Отчество'));
-    tableHeader.append(createTableColHeader('table__col-created', 'Дата и время создания'));
-    tableHeader.append(createTableColHeader('table__col-changed', 'Последние изменения'));
-    tableHeader.append(createTableColHeader('table__col-contacts', 'Контакты', false));
-    tableHeader.append(createTableColHeader('table__col-actions', 'Действия', false));
+    tableHeader.append(createTableColHeader('table__col-id table__col-header--sorted-asc', 'ID', true, 'id'));
+    tableHeader.append(createTableColHeader('table__col-name', 'Фамилия Имя Отчество', true, 'surname'));
+    tableHeader.append(createTableColHeader('table__col-created', 'Дата и время создания', true, 'createdAt'));
+    tableHeader.append(createTableColHeader('table__col-changed', 'Последние изменения', true, 'updatedAt'));
+    tableHeader.append(createTableColHeader('table__col-contacts', 'Контакты'));
+    tableHeader.append(createTableColHeader('table__col-actions', 'Действия'));
 
     table.append(tableHeader);
-
-    function createTableRow({ id, createdAt, updatedAt, name, surname, lastName, contacts }) {
-
-      const row = document.createElement('div');
-      row.className = 'client table__row';
-
-      const idCol = document.createElement('div');
-      idCol.className = 'client__id table__col';
-      idCol.textContent = id;
-
-      const nameCol = document.createElement('div');
-      nameCol.className = 'client__name table__col';
-      nameCol.textContent = `${surname} ${name} ${lastName}`;
-
-      const createdCol = document.createElement('div');
-      createdCol.className = 'client__created table__col';
-      createdCol.textContent = `${createdAt.slice(8, 10)}.${createdAt.slice(5, 7)}.${createdAt.slice(0, 4)} `;
-
-      const createdTime = document.createElement('span');
-      createdTime.className = 'gray-text';
-      createdTime.textContent = `${createdAt.slice(11, 16)}`;
-
-      createdCol.append(createdTime);
-
-      const changedCol = document.createElement('div');
-      changedCol.className = 'client__created table__col';
-      changedCol.textContent = `${updatedAt.slice(8, 10)}.${updatedAt.slice(5, 7)}.${updatedAt.slice(0, 4)} `;
-
-      const changedTime = document.createElement('span');
-      changedTime.className = 'gray-text';
-      changedTime.textContent = `${updatedAt.slice(11, 16)}`;
-
-      changedCol.append(changedTime);
-
-      const contactsCol = document.createElement('ul');
-      contactsCol.className = 'lst client__contacts table__col';
-
-      function createVkIcon() {
-
-        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        svg.setAttribute('width', '16');
-        svg.setAttribute('height', '16');
-        svg.setAttribute('viewBox', '0 0 16 16');
-        svg.setAttribute('fill', 'none');
-        svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-
-        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        path.setAttribute('d', 'M8 0C3.58187 0 0 3.58171 0 8C0 12.4183 3.58187 16 8 16C12.4181 16 16 12.4183 16 8C16 3.58171 12.4181 0 8 0ZM12.058 8.86523C12.4309 9.22942 12.8254 9.57217 13.1601 9.97402C13.3084 10.1518 13.4482 10.3356 13.5546 10.5423C13.7065 10.8371 13.5693 11.1604 13.3055 11.1779L11.6665 11.1776C11.2432 11.2126 10.9064 11.0419 10.6224 10.7525C10.3957 10.5219 10.1853 10.2755 9.96698 10.037C9.87777 9.93915 9.78382 9.847 9.67186 9.77449C9.44843 9.62914 9.2543 9.67366 9.1263 9.90707C8.99585 10.1446 8.96606 10.4078 8.95362 10.6721C8.93577 11.0586 8.81923 11.1596 8.43147 11.1777C7.60291 11.2165 6.81674 11.0908 6.08606 10.6731C5.44147 10.3047 4.94257 9.78463 4.50783 9.19587C3.66126 8.04812 3.01291 6.78842 2.43036 5.49254C2.29925 5.2007 2.39517 5.04454 2.71714 5.03849C3.25205 5.02817 3.78697 5.02948 4.32188 5.03799C4.53958 5.04143 4.68362 5.166 4.76726 5.37142C5.05633 6.08262 5.4107 6.75928 5.85477 7.38684C5.97311 7.55396 6.09391 7.72059 6.26594 7.83861C6.45582 7.9689 6.60051 7.92585 6.69005 7.71388C6.74734 7.57917 6.77205 7.43513 6.78449 7.29076C6.82705 6.79628 6.83212 6.30195 6.75847 5.80943C6.71263 5.50122 6.53929 5.30218 6.23206 5.24391C6.07558 5.21428 6.0985 5.15634 6.17461 5.06697C6.3067 4.91245 6.43045 4.81686 6.67777 4.81686L8.52951 4.81653C8.82136 4.87382 8.88683 5.00477 8.92645 5.29874L8.92808 7.35656C8.92464 7.47032 8.98521 7.80751 9.18948 7.88198C9.35317 7.936 9.4612 7.80473 9.55908 7.70112C10.0032 7.22987 10.3195 6.67368 10.6029 6.09801C10.7279 5.84413 10.8358 5.58142 10.9406 5.31822C11.0185 5.1236 11.1396 5.02785 11.3593 5.03112L13.1424 5.03325C13.195 5.03325 13.2483 5.03374 13.3004 5.04274C13.6009 5.09414 13.6832 5.22345 13.5903 5.5166C13.4439 5.97721 13.1596 6.36088 12.8817 6.74553C12.5838 7.15736 12.2661 7.55478 11.9711 7.96841C11.7001 8.34652 11.7215 8.53688 12.058 8.86523Z');
-        path.setAttribute('fill', '#9873FF');
-
-        svg.append(path);
-        return svg;
-
-      }
-
-      function createFbIcon() {
-
-        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        svg.setAttribute('width', '16');
-        svg.setAttribute('height', '16');
-        svg.setAttribute('viewBox', '0 0 16 16');
-        svg.setAttribute('fill', 'none');
-        svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-
-        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        path.setAttribute('d', 'M7.99999 0C3.6 0 0 3.60643 0 8.04819C0 12.0643 2.928 15.3976 6.75199 16V10.3775H4.71999V8.04819H6.75199V6.27309C6.75199 4.25703 7.94399 3.14859 9.77599 3.14859C10.648 3.14859 11.56 3.30121 11.56 3.30121V5.28514H10.552C9.55999 5.28514 9.24799 5.90362 9.24799 6.53815V8.04819H11.472L11.112 10.3775H9.24799V16C11.1331 15.7011 12.8497 14.7354 14.0879 13.2772C15.3261 11.819 16.0043 9.96437 16 8.04819C16 3.60643 12.4 0 7.99999 0Z');
-        path.setAttribute('fill', '#9873FF');
-
-        svg.append(path);
-        return svg;
-
-      }
-
-      function createTelIcon() {
-
-        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        svg.setAttribute('width', '16');
-        svg.setAttribute('height', '16');
-        svg.setAttribute('viewBox', '0 0 16 16');
-        svg.setAttribute('fill', 'none');
-        svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-
-        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        circle.setAttribute('cx', '8');
-        circle.setAttribute('cy', '8');
-        circle.setAttribute('r', '8');
-        circle.setAttribute('fill', '#9873FF');
-
-        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        path.setAttribute('d', 'M11.56 9.50222C11.0133 9.50222 10.4844 9.41333 9.99111 9.25333C9.83556 9.2 9.66222 9.24 9.54222 9.36L8.84444 10.2356C7.58667 9.63556 6.40889 8.50222 5.78222 7.2L6.64889 6.46222C6.76889 6.33778 6.80444 6.16444 6.75556 6.00889C6.59111 5.51556 6.50667 4.98667 6.50667 4.44C6.50667 4.2 6.30667 4 6.06667 4H4.52889C4.28889 4 4 4.10667 4 4.44C4 8.56889 7.43556 12 11.56 12C11.8756 12 12 11.72 12 11.4756V9.94222C12 9.70222 11.8 9.50222 11.56 9.50222Z');
-        path.setAttribute('fill', 'white');
-
-        svg.append(circle, path);
-        return svg;
-
-      }
-
-      function createEmailIcon() {
-
-        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        svg.setAttribute('width', '16');
-        svg.setAttribute('height', '16');
-        svg.setAttribute('viewBox', '0 0 16 16');
-        svg.setAttribute('fill', 'none');
-        svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-
-        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        path.setAttribute('d', 'M8 16C12.4183 16 16 12.4183 16 8C16 3.58172 12.4183 0 8 0C3.58172 0 0 3.58172 0 8C0 12.4183 3.58172 16 8 16ZM4 5.75C4 5.3375 4.36 5 4.8 5H11.2C11.64 5 12 5.3375 12 5.75V10.25C12 10.6625 11.64 11 11.2 11H4.8C4.36 11 4 10.6625 4 10.25V5.75ZM8.424 8.1275L11.04 6.59375C11.14 6.53375 11.2 6.4325 11.2 6.32375C11.2 6.0725 10.908 5.9225 10.68 6.05375L8 7.625L5.32 6.05375C5.092 5.9225 4.8 6.0725 4.8 6.32375C4.8 6.4325 4.86 6.53375 4.96 6.59375L7.576 8.1275C7.836 8.28125 8.164 8.28125 8.424 8.1275Z');
-        path.setAttribute('fill-rule', 'evenodd');
-        path.setAttribute('clip-rule', 'evenodd');
-        path.setAttribute('fill', '#9873FF');
-
-        svg.append(path);
-        return svg;
-
-      }
-
-      function createOtherIcon() {
-
-        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        svg.setAttribute('width', '16');
-        svg.setAttribute('height', '16');
-        svg.setAttribute('viewBox', '0 0 16 16');
-        svg.setAttribute('fill', 'none');
-        svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-
-        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        path.setAttribute('d', 'M8 16C12.4183 16 16 12.4183 16 8C16 3.58172 12.4183 0 8 0C3.58172 0 0 3.58172 0 8C0 12.4183 3.58172 16 8 16ZM3 8C3 5.24 5.24 3 8 3C10.76 3 13 5.24 13 8C13 10.76 10.76 13 8 13C5.24 13 3 10.76 3 8ZM9.5 6C9.5 5.17 8.83 4.5 8 4.5C7.17 4.5 6.5 5.17 6.5 6C6.5 6.83 7.17 7.5 8 7.5C8.83 7.5 9.5 6.83 9.5 6ZM5 9.99C5.645 10.96 6.75 11.6 8 11.6C9.25 11.6 10.355 10.96 11 9.99C10.985 8.995 8.995 8.45 8 8.45C7 8.45 5.015 8.995 5 9.99Z');
-        path.setAttribute('fill-rule', 'evenodd');
-        path.setAttribute('clip-rule', 'evenodd');
-        path.setAttribute('fill', '#9873FF');
-
-        svg.append(path);
-        return svg;
-
-      }
-
-      const createIcon = {
-        'vk': createVkIcon,
-        'fb': createFbIcon,
-        'tel': createTelIcon,
-        'email': createEmailIcon,
-        'other': createOtherIcon,
-      }
-
-      // Create client contacts list
-
-      contacts.forEach((contact) => {
-
-        const item = document.createElement('li');
-        item.className = 'client__contact';
-
-        const button = document.createElement('button');
-        button.className = `btn client__contact-btn client__${contact.type}`;
-
-        button.append(createIcon[contact.type]());
-
-        const tooltip = document.createElement('div');
-        tooltip.className = 'client__contact-tooltip';
-
-        const tooltipText = document.createElement('span');
-        tooltipText.className = 'contact__tooltip-text';
-        tooltipText.textContent = `${contact.type}: `;
-
-        const tooltipLink = document.createElement('a');
-        tooltipLink.className = 'contact__tooltip-link';
-        tooltipLink.href = '#';
-        tooltipLink.textContent = contact.value;
-
-        tooltip.append(tooltipText, tooltipLink);
-        item.append(button, tooltip);
-        contactsCol.append(item);
-
-      });
-
-      // Create edit/remove buttons
-
-      const actionsCol = document.createElement('ul');
-      actionsCol.className = 'lst client__actions table__col';
-
-      const editItem = document.createElement('li');
-      editItem.className = 'client__edit';
-
-      const editButton = document.createElement('button');
-      editButton.className = 'btn client__edit-btn';
-
-      const editButtonSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-      editButtonSvg.setAttribute('width', '16');
-      editButtonSvg.setAttribute('height', '16');
-      editButtonSvg.setAttribute('viewBox', '0 0 16 16');
-      editButtonSvg.setAttribute('fill', 'none');
-      editButtonSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-
-      const editButtonPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      editButtonPath.setAttribute('d', 'M2 11.5V14H4.5L11.8733 6.62662L9.37333 4.12662L2 11.5ZM13.8067 4.69329C14.0667 4.43329 14.0667 4.01329 13.8067 3.75329L12.2467 2.19329C11.9867 1.93329 11.5667 1.93329 11.3067 2.19329L10.0867 3.41329L12.5867 5.91329L13.8067 4.69329Z');
-      editButtonPath.setAttribute('fill', '#9873FF');
-
-      editButtonSvg.append(editButtonPath);
-
-      const editButtonText = document.createElement('span');
-      editButtonText.className = 'client__edit-text';
-      editButtonText.textContent = 'Изменить';
-
-      editButton.append(editButtonSvg, editButtonText);
-      editItem.append(editButton);
-
-      editButton.addEventListener('click', () => {
-        document.body.style.overflow = 'hidden';
-        document.body.append(createForm({ id, createdAt, updatedAt, name, surname, lastName, contacts }));
-      });
-
-      const removeItem = document.createElement('li');
-      removeItem.className = 'client__remove';
-
-      const removeButton = document.createElement('button');
-      removeButton.className = 'btn client__remove-btn';
-
-      const removeButtonSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-      removeButtonSvg.setAttribute('width', '16');
-      removeButtonSvg.setAttribute('height', '16');
-      removeButtonSvg.setAttribute('viewBox', '0 0 16 16');
-      removeButtonSvg.setAttribute('fill', 'none');
-      removeButtonSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-
-      const removeButtonPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      removeButtonPath.setAttribute('d', 'M8 2C4.682 2 2 4.682 2 8C2 11.318 4.682 14 8 14C11.318 14 14 11.318 14 8C14 4.682 11.318 2 8 2ZM8 12.8C5.354 12.8 3.2 10.646 3.2 8C3.2 5.354 5.354 3.2 8 3.2C10.646 3.2 12.8 5.354 12.8 8C12.8 10.646 10.646 12.8 8 12.8ZM10.154 5L8 7.154L5.846 5L5 5.846L7.154 8L5 10.154L5.846 11L8 8.846L10.154 11L11 10.154L8.846 8L11 5.846L10.154 5Z');
-      removeButtonPath.setAttribute('fill', '#F06A4D');
-
-      removeButtonSvg.append(removeButtonPath);
-
-      const removeButtonText = document.createElement('span');
-      removeButtonText.className = 'client__remove-text';
-      removeButtonText.textContent = 'Удалить';
-
-      removeButton.addEventListener('click', () => {
-        deleteClient(id);
-        row.remove();
-      });
-
-      // Add everything to the row
-
-      removeButton.append(removeButtonSvg, removeButtonText);
-      removeItem.append(removeButton);
-
-      actionsCol.append(editButton, removeButton);
-
-      row.append(idCol, nameCol, createdCol, changedCol, contactsCol, actionsCol);
-
-      return row;
-
-    }
-
-    // Create table row for each client
-
-    clients.forEach((client) => {
-      table.append(createTableRow(client));
-    });
 
     // Create "add client" button
 
@@ -462,8 +278,8 @@
     addClientButton.prepend(svg);
 
     addClientButton.addEventListener('click', () => {
-      document.body.style.overflow = 'hidden';
-      document.body.append(createForm());
+      disablePageScroll();
+      renderForm();
     });
 
     // Add everything to Main
@@ -472,31 +288,303 @@
     section.append(container);
     main.append(section);
 
-    return main;
+    document.body.append(main);
 
   }
 
-  // Create "create/edit client" pop-up
+  function createTableRow({ id, createdAt, updatedAt, name, surname, lastName, contacts }) {
 
-  function createForm(client = null) {
+    const row = document.createElement('div');
+    row.className = 'client table__row';
+
+    const idCol = document.createElement('div');
+    idCol.className = 'client__id table__col';
+    idCol.textContent = id;
+
+    const nameCol = document.createElement('div');
+    nameCol.className = 'client__name table__col';
+    nameCol.textContent = `${surname} ${name} ${lastName}`;
+
+    const createdCol = document.createElement('div');
+    createdCol.className = 'client__created table__col';
+    createdCol.textContent = `${createdAt.slice(8, 10)}.${createdAt.slice(5, 7)}.${createdAt.slice(0, 4)} `;
+
+    const createdTime = document.createElement('span');
+    createdTime.className = 'gray-text';
+    createdTime.textContent = `${createdAt.slice(11, 16)}`;
+
+    createdCol.append(createdTime);
+
+    const changedCol = document.createElement('div');
+    changedCol.className = 'client__created table__col';
+    changedCol.textContent = `${updatedAt.slice(8, 10)}.${updatedAt.slice(5, 7)}.${updatedAt.slice(0, 4)} `;
+
+    const changedTime = document.createElement('span');
+    changedTime.className = 'gray-text';
+    changedTime.textContent = `${updatedAt.slice(11, 16)}`;
+
+    changedCol.append(changedTime);
+
+    const contactsCol = document.createElement('ul');
+    contactsCol.className = 'lst client__contacts table__col';
+
+    function createVkIcon() {
+
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('width', '16');
+      svg.setAttribute('height', '16');
+      svg.setAttribute('viewBox', '0 0 16 16');
+      svg.setAttribute('fill', 'none');
+      svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', 'M8 0C3.58187 0 0 3.58171 0 8C0 12.4183 3.58187 16 8 16C12.4181 16 16 12.4183 16 8C16 3.58171 12.4181 0 8 0ZM12.058 8.86523C12.4309 9.22942 12.8254 9.57217 13.1601 9.97402C13.3084 10.1518 13.4482 10.3356 13.5546 10.5423C13.7065 10.8371 13.5693 11.1604 13.3055 11.1779L11.6665 11.1776C11.2432 11.2126 10.9064 11.0419 10.6224 10.7525C10.3957 10.5219 10.1853 10.2755 9.96698 10.037C9.87777 9.93915 9.78382 9.847 9.67186 9.77449C9.44843 9.62914 9.2543 9.67366 9.1263 9.90707C8.99585 10.1446 8.96606 10.4078 8.95362 10.6721C8.93577 11.0586 8.81923 11.1596 8.43147 11.1777C7.60291 11.2165 6.81674 11.0908 6.08606 10.6731C5.44147 10.3047 4.94257 9.78463 4.50783 9.19587C3.66126 8.04812 3.01291 6.78842 2.43036 5.49254C2.29925 5.2007 2.39517 5.04454 2.71714 5.03849C3.25205 5.02817 3.78697 5.02948 4.32188 5.03799C4.53958 5.04143 4.68362 5.166 4.76726 5.37142C5.05633 6.08262 5.4107 6.75928 5.85477 7.38684C5.97311 7.55396 6.09391 7.72059 6.26594 7.83861C6.45582 7.9689 6.60051 7.92585 6.69005 7.71388C6.74734 7.57917 6.77205 7.43513 6.78449 7.29076C6.82705 6.79628 6.83212 6.30195 6.75847 5.80943C6.71263 5.50122 6.53929 5.30218 6.23206 5.24391C6.07558 5.21428 6.0985 5.15634 6.17461 5.06697C6.3067 4.91245 6.43045 4.81686 6.67777 4.81686L8.52951 4.81653C8.82136 4.87382 8.88683 5.00477 8.92645 5.29874L8.92808 7.35656C8.92464 7.47032 8.98521 7.80751 9.18948 7.88198C9.35317 7.936 9.4612 7.80473 9.55908 7.70112C10.0032 7.22987 10.3195 6.67368 10.6029 6.09801C10.7279 5.84413 10.8358 5.58142 10.9406 5.31822C11.0185 5.1236 11.1396 5.02785 11.3593 5.03112L13.1424 5.03325C13.195 5.03325 13.2483 5.03374 13.3004 5.04274C13.6009 5.09414 13.6832 5.22345 13.5903 5.5166C13.4439 5.97721 13.1596 6.36088 12.8817 6.74553C12.5838 7.15736 12.2661 7.55478 11.9711 7.96841C11.7001 8.34652 11.7215 8.53688 12.058 8.86523Z');
+      path.setAttribute('fill', '#9873FF');
+
+      svg.append(path);
+      return svg;
+
+    }
+
+    function createFbIcon() {
+
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('width', '16');
+      svg.setAttribute('height', '16');
+      svg.setAttribute('viewBox', '0 0 16 16');
+      svg.setAttribute('fill', 'none');
+      svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', 'M7.99999 0C3.6 0 0 3.60643 0 8.04819C0 12.0643 2.928 15.3976 6.75199 16V10.3775H4.71999V8.04819H6.75199V6.27309C6.75199 4.25703 7.94399 3.14859 9.77599 3.14859C10.648 3.14859 11.56 3.30121 11.56 3.30121V5.28514H10.552C9.55999 5.28514 9.24799 5.90362 9.24799 6.53815V8.04819H11.472L11.112 10.3775H9.24799V16C11.1331 15.7011 12.8497 14.7354 14.0879 13.2772C15.3261 11.819 16.0043 9.96437 16 8.04819C16 3.60643 12.4 0 7.99999 0Z');
+      path.setAttribute('fill', '#9873FF');
+
+      svg.append(path);
+      return svg;
+
+    }
+
+    function createTelIcon() {
+
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('width', '16');
+      svg.setAttribute('height', '16');
+      svg.setAttribute('viewBox', '0 0 16 16');
+      svg.setAttribute('fill', 'none');
+      svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+
+      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      circle.setAttribute('cx', '8');
+      circle.setAttribute('cy', '8');
+      circle.setAttribute('r', '8');
+      circle.setAttribute('fill', '#9873FF');
+
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', 'M11.56 9.50222C11.0133 9.50222 10.4844 9.41333 9.99111 9.25333C9.83556 9.2 9.66222 9.24 9.54222 9.36L8.84444 10.2356C7.58667 9.63556 6.40889 8.50222 5.78222 7.2L6.64889 6.46222C6.76889 6.33778 6.80444 6.16444 6.75556 6.00889C6.59111 5.51556 6.50667 4.98667 6.50667 4.44C6.50667 4.2 6.30667 4 6.06667 4H4.52889C4.28889 4 4 4.10667 4 4.44C4 8.56889 7.43556 12 11.56 12C11.8756 12 12 11.72 12 11.4756V9.94222C12 9.70222 11.8 9.50222 11.56 9.50222Z');
+      path.setAttribute('fill', 'white');
+
+      svg.append(circle, path);
+      return svg;
+
+    }
+
+    function createEmailIcon() {
+
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('width', '16');
+      svg.setAttribute('height', '16');
+      svg.setAttribute('viewBox', '0 0 16 16');
+      svg.setAttribute('fill', 'none');
+      svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', 'M8 16C12.4183 16 16 12.4183 16 8C16 3.58172 12.4183 0 8 0C3.58172 0 0 3.58172 0 8C0 12.4183 3.58172 16 8 16ZM4 5.75C4 5.3375 4.36 5 4.8 5H11.2C11.64 5 12 5.3375 12 5.75V10.25C12 10.6625 11.64 11 11.2 11H4.8C4.36 11 4 10.6625 4 10.25V5.75ZM8.424 8.1275L11.04 6.59375C11.14 6.53375 11.2 6.4325 11.2 6.32375C11.2 6.0725 10.908 5.9225 10.68 6.05375L8 7.625L5.32 6.05375C5.092 5.9225 4.8 6.0725 4.8 6.32375C4.8 6.4325 4.86 6.53375 4.96 6.59375L7.576 8.1275C7.836 8.28125 8.164 8.28125 8.424 8.1275Z');
+      path.setAttribute('fill-rule', 'evenodd');
+      path.setAttribute('clip-rule', 'evenodd');
+      path.setAttribute('fill', '#9873FF');
+
+      svg.append(path);
+      return svg;
+
+    }
+
+    function createOtherIcon() {
+
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('width', '16');
+      svg.setAttribute('height', '16');
+      svg.setAttribute('viewBox', '0 0 16 16');
+      svg.setAttribute('fill', 'none');
+      svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', 'M8 16C12.4183 16 16 12.4183 16 8C16 3.58172 12.4183 0 8 0C3.58172 0 0 3.58172 0 8C0 12.4183 3.58172 16 8 16ZM3 8C3 5.24 5.24 3 8 3C10.76 3 13 5.24 13 8C13 10.76 10.76 13 8 13C5.24 13 3 10.76 3 8ZM9.5 6C9.5 5.17 8.83 4.5 8 4.5C7.17 4.5 6.5 5.17 6.5 6C6.5 6.83 7.17 7.5 8 7.5C8.83 7.5 9.5 6.83 9.5 6ZM5 9.99C5.645 10.96 6.75 11.6 8 11.6C9.25 11.6 10.355 10.96 11 9.99C10.985 8.995 8.995 8.45 8 8.45C7 8.45 5.015 8.995 5 9.99Z');
+      path.setAttribute('fill-rule', 'evenodd');
+      path.setAttribute('clip-rule', 'evenodd');
+      path.setAttribute('fill', '#9873FF');
+
+      svg.append(path);
+      return svg;
+
+    }
+
+    const createIcon = {
+      'vk': createVkIcon,
+      'fb': createFbIcon,
+      'tel': createTelIcon,
+      'email': createEmailIcon,
+      'other': createOtherIcon,
+    }
+
+    // Create client contacts list
+
+    contacts.forEach((contact) => {
+
+      const item = document.createElement('li');
+      item.className = 'client__contact';
+
+      const button = document.createElement('button');
+      button.className = `btn client__contact-btn client__${contact.type}`;
+
+      button.append(createIcon[contact.type]());
+
+      const tooltip = document.createElement('div');
+      tooltip.className = 'client__contact-tooltip';
+
+      const tooltipText = document.createElement('span');
+      tooltipText.className = 'contact__tooltip-text';
+      tooltipText.textContent = `${contactIdToText[contact.type]}: `;
+
+      const tooltipLink = document.createElement('a');
+      tooltipLink.className = 'contact__tooltip-link';
+      tooltipLink.href = '#';
+      tooltipLink.textContent = contact.value;
+
+      tooltip.append(tooltipText, tooltipLink);
+      item.append(button, tooltip);
+      contactsCol.append(item);
+
+    });
+
+    // Create edit/remove buttons
+
+    const actionsCol = document.createElement('ul');
+    actionsCol.className = 'lst client__actions table__col';
+
+    const editItem = document.createElement('li');
+    editItem.className = 'client__edit';
+
+    const editButton = document.createElement('button');
+    editButton.className = 'btn client__edit-btn';
+
+    const editButtonSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    editButtonSvg.setAttribute('width', '16');
+    editButtonSvg.setAttribute('height', '16');
+    editButtonSvg.setAttribute('viewBox', '0 0 16 16');
+    editButtonSvg.setAttribute('fill', 'none');
+    editButtonSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+
+    const editButtonPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    editButtonPath.setAttribute('d', 'M2 11.5V14H4.5L11.8733 6.62662L9.37333 4.12662L2 11.5ZM13.8067 4.69329C14.0667 4.43329 14.0667 4.01329 13.8067 3.75329L12.2467 2.19329C11.9867 1.93329 11.5667 1.93329 11.3067 2.19329L10.0867 3.41329L12.5867 5.91329L13.8067 4.69329Z');
+    editButtonPath.setAttribute('fill', '#9873FF');
+
+    editButtonSvg.append(editButtonPath);
+
+    const editButtonText = document.createElement('span');
+    editButtonText.className = 'client__edit-text';
+    editButtonText.textContent = 'Изменить';
+
+    editButton.append(editButtonSvg, editButtonText);
+    editItem.append(editButton);
+
+    editButton.addEventListener('click', async () => {
+
+      disablePageScroll();
+      renderForm(await getClient(id));
+
+    });
+
+    const removeItem = document.createElement('li');
+    removeItem.className = 'client__remove';
+
+    const removeButton = document.createElement('button');
+    removeButton.className = 'btn client__remove-btn';
+
+    const removeButtonSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    removeButtonSvg.setAttribute('width', '16');
+    removeButtonSvg.setAttribute('height', '16');
+    removeButtonSvg.setAttribute('viewBox', '0 0 16 16');
+    removeButtonSvg.setAttribute('fill', 'none');
+    removeButtonSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+
+    const removeButtonPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    removeButtonPath.setAttribute('d', 'M8 2C4.682 2 2 4.682 2 8C2 11.318 4.682 14 8 14C11.318 14 14 11.318 14 8C14 4.682 11.318 2 8 2ZM8 12.8C5.354 12.8 3.2 10.646 3.2 8C3.2 5.354 5.354 3.2 8 3.2C10.646 3.2 12.8 5.354 12.8 8C12.8 10.646 10.646 12.8 8 12.8ZM10.154 5L8 7.154L5.846 5L5 5.846L7.154 8L5 10.154L5.846 11L8 8.846L10.154 11L11 10.154L8.846 8L11 5.846L10.154 5Z');
+    removeButtonPath.setAttribute('fill', '#F06A4D');
+
+    removeButtonSvg.append(removeButtonPath);
+
+    const removeButtonText = document.createElement('span');
+    removeButtonText.className = 'client__remove-text';
+    removeButtonText.textContent = 'Удалить';
+
+    removeButton.addEventListener('click', async () => {
+      disablePageScroll();
+      await renderDeletionModal(id);
+    });
+
+    // Add everything to the row
+
+    removeButton.append(removeButtonSvg, removeButtonText);
+    removeItem.append(removeButton);
+
+    actionsCol.append(editButton, removeButton);
+
+    row.append(idCol, nameCol, createdCol, changedCol, contactsCol, actionsCol);
+
+    return row;
+
+  }
+
+  async function renderClients() {
+
+    const table = document.querySelector('.table');
+
+    // Remove all table rows
+
+    const rows = table.querySelectorAll('.client');
+    rows.forEach(row => row.remove());
+
+    clients = await getClients();
+
+    // Create table row for each client
+
+    clients.forEach((client) => {
+      table.append(createTableRow(client));
+    });
+
+  }
+
+  // Create "create/edit client" modal
+
+  async function renderForm(client = null) {
 
     const wrapper = document.createElement('div');
-    wrapper.className = 'edit-form__wrapper';
+    wrapper.className = 'form-wrapper form-edit';
 
     const form = document.createElement('form');
-    form.className = 'edit-form';
+    form.className = 'form';
 
     // Create text above inputs
 
     const formText = document.createElement('div');
-    formText.className = 'edit-form__text';
+    formText.className = 'form__text';
 
     const title = document.createElement('h2');
-    title.className = 'edit-form__title';
+    title.className = 'form__title';
     title.textContent = client ? 'Изменить данные' : 'Новый клиент';
 
     const clientID = document.createElement('span');
-    clientID.className = 'edit-form__id';
+    clientID.className = 'form__id';
     clientID.textContent = client ? `ID: ${client.id}` : '';
 
     formText.append(title, clientID);
@@ -504,15 +592,15 @@
     // Create name, surname, lastName fields
 
     const fields = document.createElement('div');
-    fields.className = 'edit-form__fields';
+    fields.className = 'form__fields';
 
     function createField(inputLabel, inputValue = '', required = true) {
 
       const label = document.createElement('label');
-      label.className = 'edit-form__label';
+      label.className = 'form__label';
 
       const labelText = document.createElement('span');
-      labelText.className = inputValue ? 'edit-form__label-text' : 'edit-form__label-text edit-form__label-text--empty';
+      labelText.className = inputValue ? 'form__label-text' : 'form__label-text form__label-text--empty';
       labelText.textContent = inputLabel;
 
       if (required) {
@@ -523,17 +611,17 @@
       }
 
       const input = document.createElement('input');
-      input.className = 'edit-form__input';
+      input.className = 'form__input';
       input.type = 'text';
       input.value = inputValue;
 
-      // Show labels above/into inputs
+      // Show labels above/into the input fields
 
       input.addEventListener('input', () => {
         if (input.value === '') {
-          labelText.classList.add('edit-form__label-text--empty');
+          labelText.classList.add('form__label-text--empty');
         } else {
-          labelText.classList.remove('edit-form__label-text--empty');
+          labelText.classList.remove('form__label-text--empty');
         }
       });
 
@@ -595,7 +683,7 @@
     // Create "add contacts" section
 
     const contacts = document.createElement('div');
-    contacts.className = 'add-contacts edit-form__add-contacts';
+    contacts.className = 'add-contacts form__add-contacts';
 
     function createContactField(option = '', value = '') {
 
@@ -620,7 +708,7 @@
       select.append(createOption('Facebook'));
       select.append(createOption('Другое'));
 
-      select.value = contactIdToText[option];
+      select.value = option ? contactIdToText[option] : 'Телефон';
 
       const input = document.createElement('input');
       input.className = value ? 'new-contact__data' : 'new-contact__data';
@@ -698,33 +786,31 @@
     // Add save and remove buttons
 
     const formButtons = document.createElement('div');
-    formButtons.className = 'edit-form__btns';
+    formButtons.className = 'form__btns';
 
     const saveButton = document.createElement('button');
-    saveButton.className = 'btn edit-form__save-btn';
+    saveButton.className = 'btn form__primary-btn';
     saveButton.type = 'submit';
     saveButton.textContent = 'Сохранить';
 
     const removeButton = document.createElement('button');
-    removeButton.className = 'btn edit-form__remove-btn';
-    removeButton.textContent = 'Удалить клиента';
+    removeButton.className = 'btn form__secondary-btn';
+    removeButton.textContent = client ? 'Удалить клиента' : 'Отмена';
 
     formButtons.append(saveButton, removeButton);
 
-    removeButton.addEventListener('click', (e) => {
+    removeButton.addEventListener('click', async (e) => {
 
       e.preventDefault();
-      deleteClient(client.id);
-
-      wrapper.remove();
-      document.body.style.removeProperty('overflow');
+      renderDeletionModal(client.id);
+      wrapper.style.display = 'none';
 
     });
 
     // Add close button
 
     const closeButton = document.createElement('button');
-    closeButton.className = 'btn edit-form__close-btn';
+    closeButton.className = 'btn form__close-btn';
 
     const crossSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     crossSvg.setAttribute('width', '29');
@@ -745,7 +831,7 @@
     closeButton.addEventListener('click', (e) => {
       e.preventDefault();
       wrapper.remove();
-      document.body.style.removeProperty('overflow');
+      enablePageScroll();
     });
 
     // Add everything to the form
@@ -776,7 +862,7 @@
       }
 
       wrapper.remove();
-      document.body.style.removeProperty('overflow');
+      enablePageScroll();
 
     });
 
@@ -785,22 +871,204 @@
 
       if (e.target === wrapper) {
         wrapper.remove();
-        document.body.style.removeProperty('overflow');
+        enablePageScroll();
       }
 
     });
 
-    return wrapper;
+    document.body.append(wrapper);
+
+  }
+
+  // Create "confirmation before deletion" modal
+
+  async function renderDeletionModal(id) {
+
+    const editClientForm = document.querySelector('.form-edit');
+
+    const modalWrapper = document.createElement('div');
+    modalWrapper.className = 'form-wrapper form-delete';
+
+    const modal = document.createElement('form');
+    modal.className = 'form';
+
+    // Create text above inputs
+
+    const modalText = document.createElement('div');
+    modalText.className = 'form__text centered';
+
+    const title = document.createElement('h2');
+    title.className = 'form__title';
+    title.textContent = 'Удалить клиента';
+
+    const secondaryText = document.createElement('span');
+    secondaryText.className = 'form__secondary-text';
+    secondaryText.textContent = 'Вы действительно хотите удалить данного клиента?';
+
+    modalText.append(title, secondaryText);
+
+    // Add confirm and cancel buttons
+
+    const modalButtons = document.createElement('div');
+    modalButtons.className = 'form__btns';
+
+    const deleteButton = document.createElement('button');
+    deleteButton.className = 'btn form__primary-btn';
+    deleteButton.textContent = 'Удалить';
+
+    const cancelButton = document.createElement('button');
+    cancelButton.className = 'btn form__secondary-btn';
+    cancelButton.textContent = 'Отмена';
+
+    modalButtons.append(deleteButton, cancelButton);
+
+    deleteButton.addEventListener('click', async (e) => {
+
+      await deleteClient(id);
+
+      if (editClientForm) {
+        editClientForm.remove();
+      }
+
+      modalWrapper.remove();
+      enablePageScroll();
+
+    });
+
+    cancelButton.addEventListener('click', (e) => {
+
+      modalWrapper.remove();
+
+      if (editClientForm) {
+        editClientForm.style.removeProperty('display');
+
+      } else {
+        enablePageScroll();
+      }
+
+    });
+
+    // Add close button
+
+    const closeButton = document.createElement('button');
+    closeButton.className = 'btn form__close-btn';
+
+    const crossSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    crossSvg.setAttribute('width', '29');
+    crossSvg.setAttribute('height', '29');
+    crossSvg.setAttribute('viewBox', '0 0 29 29');
+    crossSvg.setAttribute('fill', 'none');
+    crossSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+
+    const crossPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    crossPath.setAttribute('d', 'M22.2333 7.73333L21.2666 6.76666L14.4999 13.5334L7.73324 6.7667L6.76658 7.73336L13.5332 14.5L6.7666 21.2667L7.73327 22.2333L14.4999 15.4667L21.2666 22.2334L22.2332 21.2667L15.4666 14.5L22.2333 7.73333Z');
+    crossPath.setAttribute('fill-rule', 'evenodd');
+    crossPath.setAttribute('clip-rule', 'evenodd');
+    crossPath.setAttribute('fill', '#B0B0B0');
+
+    crossSvg.append(crossPath);
+    closeButton.append(crossSvg);
+
+    closeButton.addEventListener('click', (e) => {
+
+      modalWrapper.remove();
+
+      if (editClientForm) {
+        editClientForm.style.removeProperty('display');
+
+      } else {
+        enablePageScroll();
+      }
+
+    });
+
+    // Add everything to the modal
+
+    modal.append(modalText, modalButtons, closeButton);
+
+    modalWrapper.append(modal);
+    modalWrapper.addEventListener('click', (e) => {
+
+      if (e.target === modalWrapper) {
+
+        modalWrapper.remove();
+
+        if (editClientForm) {
+          editClientForm.style.removeProperty('display');
+
+        } else {
+          enablePageScroll();
+        }
+
+      }
+
+    });
+
+    document.body.append(modalWrapper);
 
   }
 
   document.addEventListener('DOMContentLoaded', async () => {
 
-    const clients = await getClients();
+    renderHeader();
+    renderMain();
 
-    document.body.append(createHeader());
-    document.body.append(createCRM(clients));
+    await renderClients();
+
+    // await addRandomClient();
 
   });
+
+  // Add randomly generated client (for testing purposes)
+
+  async function addRandomClient() {
+
+    function random(a, b) {
+      return Math.round(Math.random() * Math.abs(a - b) + Math.min(a, b));
+    }
+
+    const randomFirstNames = ['Александр', 'Борис', 'Валерий', 'Геннадий', 'Дмитрий', 'Егор', 'Захар', 'Иван', 'Константин', 'Леонид', 'Максим', 'Николай', 'Олег', 'Петр', 'Руслан', 'Станислав', 'Тимур', 'Федор'];
+    const randomSurnames = ['Александров', 'Борисов', 'Валерьев', 'Геннадьев', 'Дмитриев', 'Егоров', 'Захаров', 'Иванов', 'Константинов', 'Леонидов', 'Максимов', 'Николаев', 'Олегов', 'Петров', 'Русланов', 'Станиславов', 'Тимуров', 'Федоров'];
+    const randomLastNames = ['Александрович', 'Борисович', 'Валерьевич', 'Геннадьевич', 'Дмитриевич', 'Егорович', 'Захарович', 'Иванович', 'Константинович', 'Леонидович', 'Максимович', 'Николаевич', 'Олегович', 'Петрович', 'Русланович', 'Станиславович', 'Тимурович', 'Федорович'];
+
+    const randomContacts = [
+      {
+        type: 'tel',
+        value: '+79999999999',
+      },
+      {
+        type: 'email',
+        value: 'mail@example.com',
+      },
+      {
+        type: 'vk',
+        value: '@vkaccount',
+      },
+      {
+        type: 'fb',
+        value: '@fbaccount',
+      },
+      {
+        type: 'other',
+        value: 'other contact',
+      },
+    ];
+
+    const client = {
+      name: randomFirstNames[random(0, randomFirstNames.length - 1)],
+      surname: randomSurnames[random(0, randomSurnames.length - 1)],
+      lastName: randomLastNames[random(0, randomLastNames.length - 1)],
+      contacts: [],
+    }
+
+    for (let i = 0; i < 10; i++) {
+      if (Math.random() < 0.5) {
+        client.contacts.push(randomContacts[random(0, randomContacts.length - 1)]);
+      }
+    }
+
+    await addClient(client);
+
+  }
 
 })();
