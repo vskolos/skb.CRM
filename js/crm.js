@@ -1015,8 +1015,18 @@
     removeButton.addEventListener('click', async (e) => {
 
       e.preventDefault();
-      renderDeletionModal(client.id);
-      wrapper.style.display = 'none';
+
+      if (client) {
+
+        renderDeletionModal(client.id);
+        wrapper.style.display = 'none';
+
+      } else {
+
+        wrapper.remove();
+        enablePageScroll();
+
+      }
 
     });
 
