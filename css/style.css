@@ -35,6 +35,22 @@ body {
   min-width: 320px;
 }
 
+@keyframes preloader {
+  0% {
+    transform: rotate(0);
+  }
+  50% {
+    transform: rotate(180deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.preloader {
+  animation: preloader 1s linear infinite;
+}
+
 .container {
   margin-inline: auto;
   padding-inline: 10px;
@@ -182,6 +198,19 @@ body {
 
 .table__col-header--sorted-desc::after {
   background-image: url('../img/arrow-up.svg');
+}
+
+.table__preloader {
+  width: calc(40px + 40px + 90px + 210px + 90px + 90px + 121px + 85px);
+  height: 300px;
+  display: flex;
+  align-items: center;
+  background-color: var(--clr-white);
+}
+
+.table__preloader > svg {
+  position: fixed;
+  left: calc(50vw - 20px);
 }
 
 .table__row {
@@ -684,6 +713,9 @@ body {
 
 .form__primary-btn {
   padding: 12.5px 35px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
   font-weight: 600;
   font-size: var(--fs-400);
   line-height: var(--lh-400);
@@ -791,6 +823,10 @@ body {
     grid-template-columns: 12.67% 27.91% 13.08% 13.08% 15.09% 12.35%;
   }
 
+  .table__preloader {
+    width: 100%;
+  }
+
   .table__row {
     margin-right: 0;
   }
@@ -832,11 +868,11 @@ body {
 @media (min-width: 1024px) {
 
   .table__header {
-    grid-template-columns: 9.57% 23.83% 15.89% 14.62% 12.04% 19.81%;
+    grid-template-columns: 9.57% 23.83% 15.89% 15.89% 12.04% 18.54%;
   }
 
   .client {
-    grid-template-columns: 9.57% 23.83% 15.89% 14.62% 12.04% 19.81%;
+    grid-template-columns: 9.57% 23.83% 15.89% 15.89% 12.04% 18.54%;
     width: auto;
   }
 
@@ -867,6 +903,11 @@ body {
 
   .table__header {
     grid-template-columns: 9.46% 31.5% 14.57% 14.4% 10.26% 16.23%;
+  }
+
+  .table__preloader > svg {
+    width: 80px;
+    height: 80px;
   }
 
   .client {

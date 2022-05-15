@@ -278,8 +278,8 @@
     addClientButton.prepend(svg);
 
     addClientButton.addEventListener('click', () => {
-      disablePageScroll();
       renderForm();
+      disablePageScroll();
     });
 
     // Add everything to Main
@@ -289,6 +289,41 @@
     main.append(section);
 
     document.body.append(main);
+
+  }
+
+  function renderPreloader() {
+
+    const preloader = document.createElement('div');
+    preloader.className = 'table__preloader';
+
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.classList.add('preloader');
+    svg.setAttribute('width', '40');
+    svg.setAttribute('height', '40');
+    svg.setAttribute('viewBox', '0 0 40 40');
+    svg.setAttribute('fill', 'none');
+    svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', 'M2 20C2 29.941 10.059 38 20 38C29.941 38 38 29.941 38 20C38 10.059 29.941 2 20 2C17.6755 2 15.454 2.4405 13.414 3.243');
+    path.setAttribute('stroke', '#9873FF');
+    path.setAttribute('stroke-width', '4');
+    path.setAttribute('stroke-miterlimit', '10');
+    path.setAttribute('stroke-linecap', 'round');
+
+    svg.append(path);
+    preloader.append(svg);
+
+    const table = document.querySelector('.table');
+    table.append(preloader);
+
+  }
+
+  function removePreloader() {
+
+    const preloader = document.querySelector('.table__preloader');
+    preloader.remove();
 
   }
 
@@ -490,6 +525,23 @@
 
     editButtonSvg.append(editButtonPath);
 
+    const editButtonPreloaderSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    editButtonPreloaderSvg.classList.add('preloader');
+    editButtonPreloaderSvg.setAttribute('width', '16');
+    editButtonPreloaderSvg.setAttribute('height', '16');
+    editButtonPreloaderSvg.setAttribute('viewBox', '0 0 16 16');
+    editButtonPreloaderSvg.setAttribute('fill', 'none');
+    editButtonPreloaderSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+
+    const editButtonPreloaderPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    editButtonPreloaderPath.setAttribute('d', 'M3.00008 8.04008C3.00008 10.8236 5.2566 13.0801 8.04008 13.0801C10.8236 13.0801 13.0801 10.8236 13.0801 8.04008C13.0801 5.2566 10.8236 3.00008 8.04008 3.00008C7.38922 3.00008 6.7672 3.12342 6.196 3.34812');
+    editButtonPreloaderPath.setAttribute('stroke', '#9873FF');
+    editButtonPreloaderPath.setAttribute('stroke-width', '2');
+    editButtonPreloaderPath.setAttribute('stroke-miterlimit', '10');
+    editButtonPreloaderPath.setAttribute('stroke-linecap', 'round');
+
+    editButtonPreloaderSvg.append(editButtonPreloaderPath);
+
     const editButtonText = document.createElement('span');
     editButtonText.className = 'client__edit-text';
     editButtonText.textContent = 'Изменить';
@@ -499,8 +551,14 @@
 
     editButton.addEventListener('click', async () => {
 
-      disablePageScroll();
+      editButtonSvg.remove();
+      editButton.prepend(editButtonPreloaderSvg);
+
       renderForm(await getClient(id));
+      disablePageScroll();
+
+      editButtonPreloaderSvg.remove();
+      editButton.prepend(editButtonSvg);
 
     });
 
@@ -523,13 +581,38 @@
 
     removeButtonSvg.append(removeButtonPath);
 
+    const removeButtonPreloaderSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    removeButtonPreloaderSvg.classList.add('preloader');
+    removeButtonPreloaderSvg.setAttribute('width', '16');
+    removeButtonPreloaderSvg.setAttribute('height', '16');
+    removeButtonPreloaderSvg.setAttribute('viewBox', '0 0 16 16');
+    removeButtonPreloaderSvg.setAttribute('fill', 'none');
+    removeButtonPreloaderSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+
+    const removeButtonPreloaderPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    removeButtonPreloaderPath.setAttribute('d', 'M3.00008 8.04008C3.00008 10.8236 5.2566 13.0801 8.04008 13.0801C10.8236 13.0801 13.0801 10.8236 13.0801 8.04008C13.0801 5.2566 10.8236 3.00008 8.04008 3.00008C7.38922 3.00008 6.7672 3.12342 6.196 3.34812');
+    removeButtonPreloaderPath.setAttribute('stroke', '#F06A4D');
+    removeButtonPreloaderPath.setAttribute('stroke-width', '2');
+    removeButtonPreloaderPath.setAttribute('stroke-miterlimit', '10');
+    removeButtonPreloaderPath.setAttribute('stroke-linecap', 'round');
+
+    removeButtonPreloaderSvg.append(removeButtonPreloaderPath);
+
     const removeButtonText = document.createElement('span');
     removeButtonText.className = 'client__remove-text';
     removeButtonText.textContent = 'Удалить';
 
-    removeButton.addEventListener('click', async () => {
+    removeButton.addEventListener('click', () => {
+
+      removeButtonSvg.remove();
+      removeButton.prepend(removeButtonPreloaderSvg);
+
+      renderDeletionModal(id);
       disablePageScroll();
-      await renderDeletionModal(id);
+
+      removeButtonPreloaderSvg.remove();
+      removeButton.prepend(removeButtonSvg);
+
     });
 
     // Add everything to the row
@@ -554,7 +637,9 @@
     const rows = table.querySelectorAll('.client');
     rows.forEach(row => row.remove());
 
+    renderPreloader();
     clients = await getClients();
+    removePreloader();
 
     // Create table row for each client
 
@@ -818,6 +903,23 @@
     saveButton.type = 'submit';
     saveButton.textContent = 'Сохранить';
 
+    const saveButtonPreloaderSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    saveButtonPreloaderSvg.classList.add('preloader');
+    saveButtonPreloaderSvg.setAttribute('width', '16');
+    saveButtonPreloaderSvg.setAttribute('height', '16');
+    saveButtonPreloaderSvg.setAttribute('viewBox', '0 0 16 16');
+    saveButtonPreloaderSvg.setAttribute('fill', 'none');
+    saveButtonPreloaderSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+
+    const saveButtonPreloaderPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    saveButtonPreloaderPath.setAttribute('d', 'M3.00008 8.03996C3.00008 10.8234 5.2566 13.08 8.04008 13.08C10.8236 13.08 13.0801 10.8234 13.0801 8.03996C13.0801 5.25648 10.8236 2.99996 8.04008 2.99996C7.38922 2.99996 6.7672 3.1233 6.196 3.348');
+    saveButtonPreloaderPath.setAttribute('stroke', '#FFFFFF');
+    saveButtonPreloaderPath.setAttribute('stroke-width', '2');
+    saveButtonPreloaderPath.setAttribute('stroke-miterlimit', '10');
+    saveButtonPreloaderPath.setAttribute('stroke-linecap', 'round');
+
+    saveButtonPreloaderSvg.append(saveButtonPreloaderPath);
+
     const removeButton = document.createElement('button');
     removeButton.className = 'btn form__secondary-btn';
     removeButton.textContent = client ? 'Удалить клиента' : 'Отмена';
@@ -854,9 +956,11 @@
     closeButton.append(crossSvg);
 
     closeButton.addEventListener('click', (e) => {
+
       e.preventDefault();
       wrapper.remove();
       enablePageScroll();
+
     });
 
     // Add everything to the form
@@ -865,6 +969,7 @@
     form.addEventListener('submit', async (e) => {
 
       e.preventDefault();
+      saveButton.prepend(saveButtonPreloaderSvg);
 
       const data = {
         id: client ? client.id : '',
