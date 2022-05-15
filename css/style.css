@@ -532,35 +532,81 @@ body {
 .new-contact {
   display: flex;
   width: 100%;
-  overflow: hidden;
 }
 
 .new-contact:not(:first-child) {
   margin-top: -10px;
 }
 
-.new-contact__type {
-  padding: 10px 12px;
+.choices {
+  margin-bottom: 0;
   width: 40.74%;
+  z-index: auto;
+}
+
+.choices__inner,
+.new-contact__type {
+  padding: 10.5px 8px 10.5px 12px;
+  min-height: auto;
   font-size: var(--fs-300);
   line-height: var(--lh-300);
   color: var(--clr-black);
   background-color: var(--clr-gray-light);
   border: 1px solid var(--clr-gray);
   border-radius: 0;
-  z-index: auto;
   transition: border-color .1s ease-in-out;
 }
 
+.choices__inner:hover,
 .new-contact__type:hover {
   border-color: var(--clr-accent-light);
   z-index: 1;
 }
 
+.choices__inner:focus-visible,
 .new-contact__type:focus-visible {
   border-color: var(--clr-accent);
   outline: none;
   z-index: 1;
+}
+
+.choices[data-type*=select-one] .choices__inner {
+  padding-bottom: 10.5px;
+}
+
+.choices__list--single {
+  padding: 0 20px 0 0;
+}
+
+.choices[data-type*=select-one]::after {
+  margin-top: -6px;
+  height: 12px;
+  width: 12px;
+  right: 8px;
+  top: 50%;
+  background-image: url('../img/arrow-select.svg');
+  border: none;
+  transition: transform .1s ease-in-out;
+}
+
+.choices[data-type*=select-one].is-open::after {
+  border: none;
+  margin-top: -6px;
+  transform: rotate(180deg);
+}
+
+.choices__list--dropdown, .choices__list[aria-expanded] {
+  background-color: #F4F3F6;
+}
+
+.choices__list--dropdown .choices__item--selectable.is-highlighted, .choices__list[aria-expanded] .choices__item--selectable.is-highlighted {
+  background-color: #E7E5EB;
+}
+
+.choices__list--dropdown .choices__item, .choices__list[aria-expanded] .choices__item {
+  padding: 6px 12px;
+  font-size: var(--fs-300);
+  line-height: var(--lh-300);
 }
 
 .new-contact__data {
@@ -601,6 +647,7 @@ body {
   background-color: var(--clr-gray-light);
   border: 1px solid var(--clr-gray);
   z-index: auto;
+  cursor: pointer;
   transition: right .1s ease-in-out,
     border-color .1s ease-in-out;
 }
@@ -664,6 +711,7 @@ body {
   line-height: var(--lh-300);
   color: var(--clr-black);
   border-bottom: 1px solid var(--clr-black);
+  cursor: pointer;
   transition: color .1s ease-in-out,
     border-color .1s ease-in-out;
 }
@@ -688,6 +736,7 @@ body {
   position: absolute;
   top: 3px;
   right: 3px;
+  cursor: pointer;
 }
 
 @media (min-width: 768px) {

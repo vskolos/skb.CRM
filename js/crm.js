@@ -566,7 +566,7 @@
 
   // Create "create/edit client" modal
 
-  async function renderForm(client = null) {
+  function renderForm(client = null) {
 
     const wrapper = document.createElement('div');
     wrapper.className = 'form-wrapper form-edit';
@@ -743,12 +743,26 @@
 
       wrapper.append(select, input, removeButton);
 
-      return wrapper;
+      return { wrapper, select };
 
     }
 
     if (client) {
-      client.contacts.forEach(contact => contacts.append(createContactField(contact.type, contact.value)));
+
+      client.contacts.forEach(contact => {
+
+        const contactField = createContactField(contact.type, contact.value);
+        new Choices(contactField.select, {
+          allowHTML: false,
+          searchEnabled: false,
+          shouldSort: false,
+          itemSelectText: '',
+        });
+
+        contacts.append(contactField.wrapper)
+
+      });
+
     }
 
     // Add "add contact" button
@@ -777,8 +791,19 @@
 
     addContactButton.append(svg, buttonText);
     addContactButton.addEventListener('click', (e) => {
+
       e.preventDefault();
-      contacts.insertBefore(createContactField(), addContactButton);
+
+      const contactField = createContactField();
+      new Choices(contactField.select, {
+        allowHTML: false,
+        searchEnabled: false,
+        shouldSort: false,
+        itemSelectText: '',
+      });
+
+      contacts.insertBefore(contactField.wrapper, addContactButton);
+
     });
 
     contacts.append(addContactButton);
@@ -882,7 +907,7 @@
 
   // Create "confirmation before deletion" modal
 
-  async function renderDeletionModal(id) {
+  function renderDeletionModal(id) {
 
     const editClientForm = document.querySelector('.form-edit');
 
