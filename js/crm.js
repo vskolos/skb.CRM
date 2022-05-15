@@ -1,3 +1,5 @@
+/* global Choices */
+
 (() => {
 
   let clients = null;
@@ -13,20 +15,36 @@
 
   async function getClients() {
 
-    const response = await fetch(`${URL}/api/clients?search=${searchQuery}`);
-    clients = await response.json();
-
-    return clients.sort((a, b) => {
-
-      if (sortBy === 'id') {
-        return sortAsc ? a[sortBy] - b[sortBy] : b[sortBy] - a[sortBy];
-      } else if (sortBy === 'surname') {
-        return sortAsc ? a[sortBy].localeCompare(b[sortBy]) : b[sortBy].localeCompare(a[sortBy]);
-      } else {
-        return sortAsc ? new Date(a[sortBy]).getTime() - new Date(b[sortBy]).getTime() : new Date(b[sortBy]).getTime() - new Date(a[sortBy]).getTime();
-      }
-
+    const response = await fetch(`${URL}/api/clients?search=${searchQuery}`).catch(() => {
+      console.log('Ошибка подключения к серверу. Загрузка данных клиентов невозможна.');
     });
+
+    if (response === undefined) {
+
+      return null;
+
+    } else if (response.ok) {
+
+      clients = await response.json();
+
+      return clients.sort((a, b) => {
+
+        if (sortBy === 'id') {
+          return sortAsc ? a[sortBy] - b[sortBy] : b[sortBy] - a[sortBy];
+        } else if (sortBy === 'surname') {
+          return sortAsc ? a[sortBy].localeCompare(b[sortBy]) : b[sortBy].localeCompare(a[sortBy]);
+        } else {
+          return sortAsc ? new Date(a[sortBy]).getTime() - new Date(b[sortBy]).getTime() : new Date(b[sortBy]).getTime() - new Date(a[sortBy]).getTime();
+        }
+
+      });
+
+    } else if (response.status === 404) {
+
+      console.log('Ошибка: переданный в запросе метод не существует или запрашиваемый элемент не найден в базе данных');
+      return null;
+
+    }
 
   }
 
@@ -34,10 +52,26 @@
 
   async function getClient(id) {
 
-    const response = await fetch(`${URL}/api/clients/${id}`);
-    const client = await response.json();
+    const response = await fetch(`${URL}/api/clients/${id}`).catch(() => {
+      console.log('Ошибка подключения к серверу. Загрузка данных клиента невозможна.');
+    });
 
-    return client;
+    if (response === undefined) {
+
+      return null;
+
+    } else if (response.ok) {
+
+      const client = await response.json();
+      return client;
+
+    } else if (response.status === 404) {
+
+      console.log('Ошибка: переданный в запросе метод не существует или запрашиваемый элемент не найден в базе данных');
+      return null;
+
+    }
+
 
   }
 
@@ -45,11 +79,25 @@
 
   async function addClient(client) {
 
-    await fetch(`${URL}/api/clients`, {
+    const response = await fetch(`${URL}/api/clients`, {
       method: 'POST',
       body: JSON.stringify(client),
+    }).catch(() => {
+      console.log('Ошибка подключения к серверу. Добавление клиента невозможно.');
     });
-    renderClients();
+
+    if (response === undefined) {
+
+      return null;
+
+    } else if (response.status === 404) {
+
+      console.log('Ошибка: переданный в запросе метод не существует или запрашиваемый элемент не найден в базе данных');
+      return null;
+
+    }
+
+    return response;
 
   }
 
@@ -57,11 +105,25 @@
 
   async function editClient(client) {
 
-    await fetch(`${URL}/api/clients/${client.id}`, {
+    const response = await fetch(`${URL}/api/clients/${client.id}`, {
       method: 'PATCH',
       body: JSON.stringify(client),
+    }).catch(() => {
+      console.log('Ошибка подключения к серверу. Редактирование клиента невозможно.');
     });
-    renderClients();
+
+    if (response === undefined) {
+
+      return null;
+
+    } else if (response.status === 404) {
+
+      console.log('Ошибка: переданный в запросе метод не существует или запрашиваемый элемент не найден в базе данных');
+      return null;
+
+    }
+
+    return response;
 
   }
 
@@ -71,8 +133,22 @@
 
     const response = await fetch(`${URL}/api/clients/${id}`, {
       method: 'DELETE',
+    }).catch(() => {
+      console.log('Ошибка подключения к серверу. Удаление клиента невозможно.');
     });
-    renderClients();
+
+    if (response === undefined) {
+
+      return null;
+
+    } else if (response.status === 404) {
+
+      console.log('Ошибка: переданный в запросе метод не существует или запрашиваемый элемент не найден в базе данных');
+      return null;
+
+    }
+
+    return response;
 
   }
 
@@ -246,7 +322,7 @@
 
       return colHeader;
 
-    };
+    }
 
     tableHeader.append(createTableColHeader('table__col-id table__col-header--sorted-asc', 'ID', true, 'id'));
     tableHeader.append(createTableColHeader('table__col-name', 'Фамилия Имя Отчество', true, 'surname'));
@@ -292,6 +368,8 @@
 
   }
 
+  // Create/delete table preloader
+
   function renderPreloader() {
 
     const preloader = document.createElement('div');
@@ -326,6 +404,8 @@
     preloader.remove();
 
   }
+
+  // Create table row with client info
 
   function createTableRow({ id, createdAt, updatedAt, name, surname, lastName, contacts }) {
 
@@ -554,8 +634,12 @@
       editButtonSvg.remove();
       editButton.prepend(editButtonPreloaderSvg);
 
-      renderForm(await getClient(id));
-      disablePageScroll();
+      const client = await getClient(id);
+
+      if (client) {
+        renderForm(client);
+        disablePageScroll();
+      }
 
       editButtonPreloaderSvg.remove();
       editButton.prepend(editButtonSvg);
@@ -643,9 +727,11 @@
 
     // Create table row for each client
 
-    clients.forEach((client) => {
-      table.append(createTableRow(client));
-    });
+    if (clients) {
+      clients.forEach((client) => {
+        table.append(createTableRow(client));
+      });
+    }
 
   }
 
@@ -934,6 +1020,39 @@
 
     });
 
+    // Create error message above "Save" button
+
+    function renderErrorMessages(errors) {
+
+      removeErrorMessages();
+
+      const wrapper = document.createElement('div');
+      wrapper.className = 'form__errors';
+
+      errors.forEach(err => {
+
+        const msg = document.createElement('p');
+        msg.className = 'form__error-msg';
+        msg.textContent = err.message;
+
+        wrapper.append(msg);
+
+      });
+
+      form.insertBefore(wrapper, formButtons);
+
+    }
+
+    function removeErrorMessages() {
+
+      const msg = document.querySelector('.form__errors');
+
+      if (msg) {
+        msg.remove();
+      }
+
+    }
+
     // Add close button
 
     const closeButton = document.createElement('button');
@@ -983,16 +1102,26 @@
         const type = contactTextToId[contact.querySelector('select').value];
         const value = contact.querySelector('input').value;
         data.contacts.push({ type, value });
+        data.contacts.sort((a, b) => a.type.localeCompare(b.type) - b.type.localeCompare(a.type));
       });
 
-      if (client) {
-        await editClient(data);
-      } else {
-        await addClient(data);
-      }
+      const response = client ? await editClient(data) : await addClient(data);
 
-      wrapper.remove();
-      enablePageScroll();
+      if (response.status === 422) {
+
+        saveButtonPreloaderSvg.remove();
+
+        const errors = (await response.json()).errors;
+        renderErrorMessages(errors);
+
+      } else {
+
+        renderClients();
+
+        wrapper.remove();
+        enablePageScroll();
+
+      }
 
     });
 
@@ -1054,7 +1183,10 @@
 
     deleteButton.addEventListener('click', async (e) => {
 
+      e.preventDefault();
+
       await deleteClient(id);
+      renderClients();
 
       if (editClientForm) {
         editClientForm.remove();
@@ -1065,7 +1197,7 @@
 
     });
 
-    cancelButton.addEventListener('click', (e) => {
+    cancelButton.addEventListener('click', () => {
 
       modalWrapper.remove();
 
@@ -1099,7 +1231,7 @@
     crossSvg.append(crossPath);
     closeButton.append(crossSvg);
 
-    closeButton.addEventListener('click', (e) => {
+    closeButton.addEventListener('click', () => {
 
       modalWrapper.remove();
 
@@ -1197,7 +1329,10 @@
       }
     }
 
+    client.contacts.sort((a, b) => a.type.localeCompare(b.type) - b.type.localeCompare(a.type));
+
     await addClient(client);
+    renderClients();
 
   }
 

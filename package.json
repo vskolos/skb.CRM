@@ -1,5 +1,8 @@
 {
   "dependencies": {
     "choices.js": "^10.1.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.15.0"
   }
 }
