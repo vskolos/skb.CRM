@@ -1032,22 +1032,34 @@
 
     // Create error message above "Save" button
 
-    function renderErrorMessages(errors) {
+    function renderErrorMessages(errors = null) {
 
       removeErrorMessages();
 
       const wrapper = document.createElement('div');
       wrapper.className = 'form__errors';
 
-      errors.forEach(err => {
+      if (errors) {
+
+        errors.forEach(err => {
+
+          const msg = document.createElement('p');
+          msg.className = 'form__error-msg';
+          msg.textContent = err.message;
+
+          wrapper.append(msg);
+
+        });
+
+      } else {
 
         const msg = document.createElement('p');
         msg.className = 'form__error-msg';
-        msg.textContent = err.message;
+        msg.textContent = 'Что-то пошло не так...';
 
         wrapper.append(msg);
 
-      });
+      }
 
       form.insertBefore(wrapper, formButtons);
 
@@ -1117,7 +1129,12 @@
 
       const response = client ? await editClient(data) : await addClient(data);
 
-      if (response.status === 422) {
+      if (!response) {
+
+        saveButtonPreloaderSvg.remove();
+        renderErrorMessages();
+
+      } else if (response.status === 422) {
 
         saveButtonPreloaderSvg.remove();
 
