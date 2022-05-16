@@ -336,7 +336,7 @@
     // Create "add client" button
 
     const addClientButton = document.createElement('button');
-    addClientButton.className = 'clients__add-btn';
+    addClientButton.className = 'btn clients__add-btn';
     addClientButton.textContent = 'Добавить клиента';
 
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
